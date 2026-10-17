@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="author" content="Dra. Nancy Pérez-Castro">
+<meta name="description" content="Herramientas para construir prompts con el marco PARTS, un asistente docente y materiales visuales en NotebookLM.">
+<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style>
+<title>Mi asistente docente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;600;700&family=Nunito+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: formulario por pasos a la izquierda, instrucciones vivas fijas a la derecha; una columna en teléfono */
+:root{
+  /* Paleta pensada para personas adultas: fondo cálido sin brillo, texto de alto contraste (≥7:1), bordes visibles */
+  --bg:#E3E9F1; --surface:#FDFCF9; --sunk:#ECE9E1; --fg:#141A22; --muted:#1F3352; --line:#CBC6BA;
+  --navy:#133A62; --blue:#0F3F75; --green:#12663A; --green-soft:#E2EFE5; --warn:#9A3320; --warn-soft:#F8E9E3;
+  --ph:#133A62; --code-bg:#FAF8F3; --focus:#0A4C8F; --field:#FFFFFF; --field-line:#76808C; --hint:#8A9099;
+  --cP:#141A22; --cA:#141A22; --cR:#141A22; --cT:#141A22; --cS:#141A22;
+  --display:'Rubik', 'Trebuchet MS', Arial, sans-serif;
+  --body:'Nunito Sans', 'Segoe UI', Arial, sans-serif;
+  --mono:'JetBrains Mono', 'Courier New', monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#162236; --surface:#242B34; --sunk:#2C343F; --fg:#F2F4F6; --muted:#DCE5F0; --line:#46505C;
+  --navy:#E3ECF6; --blue:#B9D6F5; --green:#8CD8AE; --green-soft:#1F3A2D; --warn:#F2AB9A; --warn-soft:#3E2823;
+  --ph:#B9D6F5; --code-bg:#1F252D; --focus:#95C3F0; --field:#1B2027; --field-line:#8691A0; --hint:#8F98A3;
+  --cP:#F2F4F6; --cA:#F2F4F6; --cR:#F2F4F6; --cT:#F2F4F6; --cS:#F2F4F6; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#162236; --surface:#242B34; --sunk:#2C343F; --fg:#F2F4F6; --muted:#DCE5F0; --line:#46505C;
+  --navy:#E3ECF6; --blue:#B9D6F5; --green:#8CD8AE; --green-soft:#1F3A2D; --warn:#F2AB9A; --warn-soft:#3E2823;
+  --ph:#B9D6F5; --code-bg:#1F252D; --focus:#95C3F0; --field:#1B2027; --field-line:#8691A0; --hint:#8F98A3;
+  --cP:#F2F4F6; --cA:#F2F4F6; --cR:#F2F4F6; --cT:#F2F4F6; --cS:#F2F4F6; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:18px;line-height:1.55}
+.wrap{max-width:1240px;margin:0 auto;padding-block:28px 56px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+header{display:flex;flex-direction:column;gap:6px;margin-bottom:24px}
+.eyebrow{font-size:14px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--blue)}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(32px,4.5vw,46px);line-height:1.1;color:var(--navy);margin:0;text-wrap:balance}
+.lede{color:var(--muted);max-width:62ch;margin:0;font-size:19px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.form{display:flex;flex-direction:column;gap:16px;min-width:0}
+fieldset{border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:24px;margin:0;display:flex;flex-direction:column;gap:18px;min-width:0}
+legend{display:contents}
+.step{display:flex;align-items:baseline;gap:10px}
+.step b{font-family:var(--display);font-weight:600;font-size:24px;color:var(--navy)}
+.step span{font-family:var(--mono);font-size:14px;color:var(--muted)}
+.hint{font-size:16px;color:var(--muted);margin:-6px 0 0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.row{grid-template-columns:1fr}}
+label.f{display:flex;flex-direction:column;gap:6px;font-weight:800;font-size:17px;min-width:0;color:var(--navy)}
+label.f small{font-weight:400;font-size:15px;color:var(--muted)}
+input[type=text],textarea,select{font:inherit;font-size:18px;font-weight:400;color:var(--fg);background:var(--field);border:2px solid var(--field-line);border-radius:10px;padding:12px 14px;width:100%;min-height:52px}
+input[type=text]:hover,textarea:hover,select:hover{border-color:var(--blue)}
+input[type=text]:focus,textarea:focus,select:focus{border-color:var(--blue);background:var(--surface)}
+::placeholder{color:var(--hint);opacity:1}
+select{background-color:rgba(19,58,98,.12);border-color:rgba(19,58,98,.55);font-weight:600;cursor:pointer}
+select:hover,select:focus{background-color:rgba(19,58,98,.18);border-color:var(--navy)}
+select option{background:var(--surface);color:var(--fg);font-weight:400}
+:root[data-theme="dark"] select{background-color:rgba(185,214,245,.14);border-color:rgba(185,214,245,.5)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) select{background-color:rgba(185,214,245,.14);border-color:rgba(185,214,245,.5)}}
+textarea{resize:vertical;min-height:96px}
+input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.checks{display:flex;flex-direction:column;gap:6px}
+.check{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:10px;background:var(--sunk);border:1px solid var(--line);font-size:17px;cursor:pointer}
+.check input{margin-top:4px;accent-color:var(--blue);width:22px;height:22px;flex:none}
+.check .x{margin-left:auto;background:none;border:0;color:var(--muted);cursor:pointer;font-size:24px;line-height:1;padding:0 6px}
+.add{display:flex;gap:8px}
+.add input{flex:1}
+.btn{font:inherit;font-weight:700;font-size:16px;border-radius:10px;padding:12px 18px;min-height:48px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+.btn.primary{background:var(--navy);color:var(--bg);border-color:var(--navy)}
+.btn:hover{filter:brightness(1.05)}
+.toggle{display:flex;gap:14px;align-items:flex-start;padding:16px;border:2px dashed var(--field-line);border-radius:12px;cursor:pointer}
+.toggle input{margin-top:4px;accent-color:var(--green);width:22px;height:22px;flex:none}
+.toggle strong{display:block;font-size:18px}
+.toggle span{font-size:16px;color:var(--muted)}
+.alert{display:flex;gap:10px;padding:14px 16px;border-radius:10px;background:var(--warn-soft);color:var(--fg);font-size:16px;border:2px solid var(--warn)}
+.alert b{color:var(--fg)}
+.note{display:flex;gap:10px;padding:14px 16px;border-radius:10px;background:var(--green-soft);font-size:17px}
+/* salida */
+.out{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 16px);display:flex;flex-direction:column;gap:12px;min-width:0}
+@media (max-width:900px){.out{position:static}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.cardhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
+.cardhead h2{font-family:var(--display);font-weight:600;font-size:22px;margin:0;color:var(--navy)}
+.meter{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bar{width:100px;height:8px;border-radius:99px;background:var(--sunk);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--green);width:0;transition:width .25s}
+pre{margin:0;padding:20px 20px 22px;color:var(--fg);font-family:var(--mono);font-size:15.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word;background:var(--code-bg);max-height:62vh;overflow:auto}
+pre .h{color:var(--blue);font-weight:600}
+pre .ph{color:var(--ph);font-style:italic;text-decoration:underline dotted}
+.actions{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+.toast{font-size:16px;color:var(--navy);font-weight:700;align-self:center}
+.where{display:flex;flex-direction:column;gap:10px;padding:16px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{font:inherit;font-size:16px;font-weight:700;padding:9px 16px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--navy);border-color:var(--navy);color:var(--bg)}
+.where ol{margin:0;padding-left:22px;font-size:17px;display:flex;flex-direction:column;gap:4px}
+.where p{margin:0;font-size:15px;color:var(--muted)}
+.example{font-size:13px;color:var(--muted)}
+/* pestañas principales y constructor PARTS */
+.maintabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px;border-bottom:2px solid var(--line)}
+.maintab{font:inherit;font-size:18px;font-weight:800;padding:12px 20px;border:0;border-bottom:4px solid transparent;margin-bottom:-2px;background:none;color:var(--muted);cursor:pointer;border-radius:10px 10px 0 0}
+.maintab[aria-selected="true"]{color:var(--navy);border-bottom-color:var(--blue);background:var(--surface)}
+.maintab small{display:block;font-size:14px;font-weight:600;color:var(--muted)}
+.exbar{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+.exbar p{margin:0;font-weight:800;color:var(--navy)}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{font:inherit;font-size:17px;font-weight:700;padding:10px 18px;min-height:48px;border-radius:99px;border:2px solid var(--field-line);background:var(--surface);color:var(--fg);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--bg)}
+.chip.ghost{border-style:dashed;color:var(--muted)}
+.pf{display:grid;grid-template-columns:56px minmax(0,1fr);gap:14px;align-items:start}
+.badge{width:56px;height:56px;border-radius:12px;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:28px;color:#FFFFFF}
+.b-P{background:#133A62}.b-A{background:#0A4C8F}.b-R{background:#12663A}.b-T{background:#9C3F0A}.b-S{background:#5A2CA8}
+.pf label.f{gap:4px}
+.c-P{color:var(--cP)}.c-A{color:var(--cA)}.c-R{color:var(--cR)}.c-T{color:var(--cT)}.c-S{color:var(--cS)}
+.tipbox{display:flex;gap:10px;padding:14px 16px;border-radius:10px;background:var(--sunk);border:1px solid var(--line);font-size:16px}
+.tipbox b{color:var(--navy)}
+.how{display:flex;flex-direction:column;gap:10px;padding:16px}
+.how ol{margin:0;padding-left:22px;font-size:17px;display:flex;flex-direction:column;gap:4px}
+.credit{margin-top:40px;padding-top:20px;border-top:2px solid var(--line);display:flex;flex-direction:column;gap:4px;font-size:16px;color:var(--muted)}
+.credit p{margin:0}
+.credit b{color:var(--navy)}
+.credit .decl{margin-top:10px;padding:12px 14px;border-radius:10px;background:var(--sunk);border:1px solid var(--line);max-width:80ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Taller de prompts · Formación docente</span>
+    <h1>Mi asistente docente</h1>
+    <p class="lede">Dos herramientas para el taller: arma un prompt con el marco PARTS o construye un asistente que ya conoce tu curso en la Normal. Todo se copia y funciona en cualquier IA.</p>
+  </header>
+
+  <nav class="maintabs" role="tablist" aria-label="Herramientas">
+    <button type="button" class="maintab" role="tab" id="mt-parts" data-panel="panel-parts" aria-selected="true">1 · Constructor PARTS<small>Un prompt para una tarea</small></button>
+    <button type="button" class="maintab" role="tab" id="mt-asistente" data-panel="panel-asistente" aria-selected="false">2 · Mi asistente<small>Instrucciones que se reutilizan</small></button>
+    <button type="button" class="maintab" role="tab" id="mt-visual" data-panel="panel-visual" aria-selected="false">3 · Asistente visual<small>Materiales con NotebookLM</small></button>
+  </nav>
+
+  <section id="panel-parts" role="tabpanel" aria-labelledby="mt-parts">
+    <div class="exbar">
+      <p>Carga un ejemplo listo para probar y modifícalo:</p>
+      <div class="chips" id="exChips">
+        <button type="button" class="chip" data-ex="literatura" aria-pressed="false">Búsqueda de literatura</button>
+        <button type="button" class="chip" data-ex="rubrica" aria-pressed="false">Rúbrica de evaluación</button>
+        <button type="button" class="chip" data-ex="actividad" aria-pressed="false">Actividad didáctica</button>
+        <button type="button" class="chip" data-ex="imagen" aria-pressed="false">Creación de imagen</button>
+        <button type="button" class="chip ghost" data-ex="blanco" aria-pressed="false">En blanco</button>
+      </div>
+    </div>
+    <div class="grid">
+      <form class="form" id="partsForm" autocomplete="off">
+        <fieldset>
+          <legend><div class="step"><b>Marco PARTS</b><span>5 piezas</span></div></legend>
+          <p class="hint">Cada pieza le quita una adivinanza a la IA. Escribe en oraciones completas; las que dejes vacías no aparecen.</p>
+          <div class="pf"><div class="badge b-P" aria-hidden="true">P</div><label class="f">Persona <small>¿Qué rol y nivel de experiencia asume la IA?</small><textarea id="pp-P" placeholder="Actúa como formadora de docentes con experiencia en…"></textarea></label></div>
+          <div class="pf"><div class="badge b-A" aria-hidden="true">A</div><label class="f">Acción <small>¿Qué tarea concreta debe hacer? Empieza con un verbo.</small><textarea id="pp-A" placeholder="Diseña / Identifica y compara / Redacta…"></textarea></label></div>
+          <div class="pf"><div class="badge b-R" aria-hidden="true">R</div><label class="f">Receptor <small>¿Para quién es el resultado y con qué nivel?</small><textarea id="pp-R" placeholder="Está dirigido a estudiantes normalistas de…"></textarea></label></div>
+          <div class="pf"><div class="badge b-T" aria-hidden="true">T</div><label class="f">Tema <small>¿Qué contenido, contexto y límites?</small><textarea id="pp-T" placeholder="El tema es… en el contexto de…"></textarea></label></div>
+          <div class="pf"><div class="badge b-S" aria-hidden="true">S</div><label class="f">Salida <small>¿En qué formato y extensión lo quieres?</small><textarea id="pp-S" placeholder="Presenta el resultado en una tabla con…"></textarea></label></div>
+        </fieldset>
+        <div class="tipbox" id="exTip" hidden><span><b>Para probarlo:</b> <span id="exTipTxt"></span></span></div>
+      </form>
+
+      <aside class="out">
+        <div class="card">
+          <div class="cardhead">
+            <h2>Tu prompt</h2>
+            <div class="meter"><span id="pMeterTxt">0 de 5</span><div class="bar"><i id="pMeterBar"></i></div></div>
+          </div>
+          <pre id="pPreview" aria-live="polite"></pre>
+          <div class="actions">
+            <button type="button" class="btn primary" id="pCopyBtn">Copiar prompt</button>
+            <button type="button" class="btn" id="pSelectBtn">Seleccionar texto</button>
+            <span class="toast" id="pToast" role="status"></span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="how">
+            <div class="cardhead" style="padding:0;border:0"><h2>Cómo probarlo</h2></div>
+            <ol>
+              <li>Copia el prompt y pégalo en un chat nuevo de cualquier IA.</li>
+              <li>Revisa el resultado: ¿es pertinente y correcto?</li>
+              <li>Si algo falló, ajusta la pieza de PARTS que faltó.</li>
+              <li>Refina conversando: “hazlo más breve”, “¿qué supuestos hiciste?”.</li>
+            </ol>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="panel-asistente" role="tabpanel" aria-labelledby="mt-asistente" hidden>
+  <div class="grid">
+    <form class="form" id="form" autocomplete="off">
+      <div class="note" id="exampleNote"><span>Estás viendo un <b>ejemplo</b>. Reemplaza cada campo con tus datos o <button type="button" class="btn" id="clearBtn" style="padding:4px 12px;min-height:36px">empieza en blanco</button></span></div>
+
+      <fieldset>
+        <legend><div class="step"><b>Tu contexto</b><span>P · R · T</span></div></legend>
+        <p class="hint">Describe tu curso y a tus estudiantes en general. No escribas nombres ni datos personales.</p>
+        <div class="row">
+          <label class="f">Licenciatura
+            <select id="lic">
+              <option>Educación Preescolar</option>
+              <option selected>Educación Primaria</option>
+              <option>Enseñanza y Aprendizaje en Telesecundaria</option>
+              <option>Educación Especial</option>
+              <option>Educación Física</option>
+              <option>Educación Inicial</option>
+              <option>Enseñanza y Aprendizaje (secundaria)</option>
+              <option value="__otra">Otra…</option>
+            </select>
+          </label>
+          <label class="f" id="licOtraWrap" hidden>¿Cuál?
+            <input type="text" id="licOtra" placeholder="Nombre de la licenciatura">
+          </label>
+          <label class="f">Semestre
+            <select id="sem">
+              <option>1.er</option><option>2.º</option><option selected>3.er</option><option>4.º</option>
+              <option>5.º</option><option>6.º</option><option>7.º</option><option>8.º</option>
+            </select>
+          </label>
+        </div>
+        <label class="f">Curso que impartes
+          <input type="text" id="curso" placeholder="Ej. Planeación y evaluación de la enseñanza y el aprendizaje">
+        </label>
+        <label class="f">Tu grupo <small>Tamaño, fortalezas y dificultades generales</small>
+          <textarea id="grupo" placeholder="Ej. 30 estudiantes; participan bien en equipo, les cuesta argumentar por escrito"></textarea>
+        </label>
+        <div class="row">
+          <label class="f">Recursos disponibles
+            <input type="text" id="recursos" placeholder="Ej. proyector, internet limitado">
+          </label>
+          <label class="f">Dónde hacen sus prácticas
+            <input type="text" id="practica" placeholder="Ej. escuelas rurales y multigrado de Veracruz">
+          </label>
+        </div>
+        <div class="alert" id="privacy" hidden><span><b>Revisa este dato.</b> <span id="privacyMsg"></span> Describe al grupo en general o anonimiza: “Estudiante A”.</span></div>
+      </fieldset>
+
+      <fieldset>
+        <legend><div class="step"><b>Qué quieres recibir</b><span>A · S</span></div></legend>
+        <p class="hint">Cada vez que le des un tema, el asistente te entregará lo que marques.</p>
+        <div class="checks" id="entregables"></div>
+        <div class="add"><input type="text" id="addEnt" placeholder="Agregar otro producto, ej. caso para analizar"><button type="button" class="btn" id="addEntBtn">Agregar</button></div>
+      </fieldset>
+
+      <fieldset>
+        <legend><div class="step"><b>Reglas</b><span>cómo debe trabajar</span></div></legend>
+        <div class="checks" id="reglas"></div>
+        <div class="add"><input type="text" id="addReg" placeholder="Agregar regla, ej. máximo una página"><button type="button" class="btn" id="addRegBtn">Agregar</button></div>
+      </fieldset>
+
+      <fieldset>
+        <legend><div class="step"><b>Extras</b><span>opcionales</span></div></legend>
+        <label class="toggle"><input type="checkbox" id="xVisual"><div><strong>Material visual</strong><span>Sugiere imágenes y escribe el prompt para un generador de imágenes.</span></div></label>
+        <label class="toggle"><input type="checkbox" id="xDoble" checked><div><strong>Doble rol formativo</strong><span>Incluye una actividad donde tus estudiantes usen la IA con criterio para preparar su práctica.</span></div></label>
+      </fieldset>
+    </form>
+
+    <aside class="out">
+      <div class="card">
+        <div class="cardhead">
+          <h2>Tus instrucciones</h2>
+          <div class="meter"><span id="meterTxt">0 de 6</span><div class="bar"><i id="meterBar"></i></div></div>
+        </div>
+        <pre id="preview" aria-live="polite"></pre>
+        <div class="actions">
+          <button type="button" class="btn primary" id="copyBtn">Copiar instrucciones</button>
+          <button type="button" class="btn" id="selectBtn">Seleccionar texto</button>
+          <span class="toast" id="toast" role="status"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="where">
+          <div class="cardhead" style="padding:0;border:0"><h2>Dónde guardarlo</h2></div>
+          <div class="tabs" role="tablist" id="tabs">
+            <button type="button" class="tab" role="tab" data-k="claude" aria-selected="true">Claude</button>
+            <button type="button" class="tab" role="tab" data-k="chatgpt" aria-selected="false">ChatGPT</button>
+            <button type="button" class="tab" role="tab" data-k="gemini" aria-selected="false">Gemini</button>
+            <button type="button" class="tab" role="tab" data-k="doc" aria-selected="false">Versión gratuita</button>
+          </div>
+          <ol id="whereSteps"></ol>
+          <p>Los nombres de los menús cambian según la versión o el plan de cada herramienta.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+  </section>
+
+  <section id="panel-visual" role="tabpanel" aria-labelledby="mt-visual" hidden>
+    <div class="exbar">
+      <p>¿Qué material visual quieres generar en NotebookLM?</p>
+      <div class="chips" id="vTypes">
+        <button type="button" class="chip" data-t="infografia" aria-pressed="true">Infografía</button>
+        <button type="button" class="chip" data-t="presentacion" aria-pressed="false">Presentación</button>
+        <button type="button" class="chip" data-t="video" aria-pressed="false">Resumen en video</button>
+        <button type="button" class="chip" data-t="mapa" aria-pressed="false">Mapa mental</button>
+      </div>
+    </div>
+    <div class="grid">
+      <form class="form" id="vForm" autocomplete="off">
+        <fieldset>
+          <legend><div class="step"><b>El material</b><span>T · R</span></div></legend>
+          <p class="hint">NotebookLM trabaja solo con las fuentes que subas al cuaderno. Aquí le dices qué destacar y para quién.</p>
+          <label class="f">Tema del material
+            <input type="text" id="v-tema" placeholder="Ej. Evaluación formativa durante la jornada de práctica">
+          </label>
+          <div class="row">
+            <label class="f">¿Para quién es?
+              <select id="v-aud">
+                <option>estudiantes normalistas</option>
+                <option>niñas y niños de preescolar</option>
+                <option>niñas y niños de primaria</option>
+                <option>adolescentes de secundaria</option>
+                <option>el colegiado docente</option>
+                <option>madres y padres de familia</option>
+              </select>
+            </label>
+            <label class="f">Grado o semestre <small>opcional</small>
+              <input type="text" id="v-grado" placeholder="Ej. 3.er semestre / 4.º grado">
+            </label>
+          </div>
+          <label class="f">Propósito
+            <select id="v-prop">
+              <option value="introducir el tema y despertar preguntas">Introducir un tema</option>
+              <option value="repasar y consolidar lo aprendido">Repasar y consolidar</option>
+              <option value="guiar paso a paso un procedimiento o práctica">Guiar una práctica</option>
+              <option value="divulgar el tema a la comunidad escolar">Divulgar a la comunidad</option>
+            </select>
+          </label>
+          <label class="f">Ideas que deben aparecer sí o sí <small>Una por línea</small>
+            <textarea id="v-ideas" placeholder="Ej. Diferencia entre evaluar y calificar"></textarea>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend><div class="step"><b>Cómo debe verse</b><span>S</span></div></legend>
+          <div id="vTypeOpts" class="row"></div>
+          <div class="row">
+            <label class="f">Estilo visual
+              <select id="v-estilo">
+                <option>ilustración de libro escolar, amable y clara</option>
+                <option>minimalista, con íconos sencillos</option>
+                <option>pizarrón con trazos a mano</option>
+                <option>acuarela suave</option>
+                <option>institucional y sobrio</option>
+              </select>
+            </label>
+            <label class="f">Colores
+              <select id="v-paleta">
+                <option>cálidos (naranjas, amarillos y verdes)</option>
+                <option>azules y verdes institucionales</option>
+                <option>alto contraste, fáciles de leer proyectados</option>
+                <option>pastel</option>
+              </select>
+            </label>
+          </div>
+          <label class="f">Contexto local <small>opcional, para ejemplos e imágenes cercanas</small>
+            <input type="text" id="v-local" placeholder="Ej. escuelas rurales y multigrado de Veracruz">
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend><div class="step"><b>Reglas</b><span>calidad y cuidado</span></div></legend>
+          <label class="toggle"><input type="checkbox" id="v-fuentes" checked><div><strong>Solo con mis fuentes</strong><span>No inventar datos, cifras ni autores que no estén en el cuaderno.</span></div></label>
+          <label class="toggle"><input type="checkbox" id="v-acces" checked><div><strong>Legible al proyectar</strong><span>Texto breve, letra grande y buen contraste.</span></div></label>
+          <label class="toggle"><input type="checkbox" id="v-divers" checked><div><strong>Diversidad e inclusión</strong><span>Personas diversas y sin estereotipos.</span></div></label>
+        </fieldset>
+      </form>
+
+      <aside class="out">
+        <div class="card">
+          <div class="cardhead"><h2 id="vOutTitle">Tu prompt para NotebookLM</h2></div>
+          <div class="where" style="border-bottom:1px solid var(--line)">
+            <p style="font-size:16px;color:var(--fg)"><b>Dónde pegarlo:</b> <span id="vWhere"></span></p>
+            <ol id="vConfig"></ol>
+          </div>
+          <pre id="vPreview" aria-live="polite"></pre>
+          <div class="actions">
+            <button type="button" class="btn primary" id="vCopyBtn">Copiar prompt</button>
+            <button type="button" class="btn" id="vSelectBtn">Seleccionar texto</button>
+            <span class="toast" id="vToast" role="status"></span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="how">
+            <div class="cardhead" style="padding:0;border:0"><h2>Antes de generar</h2></div>
+            <ol>
+              <li>Crea un cuaderno por tema y sube tus fuentes: programa del curso, lecturas, tus apuntes.</li>
+              <li>No subas trabajos, fotos ni datos de estudiantes.</li>
+              <li>Revisa el material completo antes de usarlo: puede omitir o simplificar de más.</li>
+              <li>Si no te convence, ajusta el prompt y vuelve a generar.</li>
+            </ol>
+            <p>Los nombres de los botones de NotebookLM pueden cambiar con sus actualizaciones.</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <footer class="credit">
+    <p>Herramienta desarrollada con apoyo de inteligencia artificial bajo la supervisión de la <b>Dra. Nancy Pérez-Castro</b>.</p>
+    <p>Instituto de Investigaciones en Inteligencia Artificial, Universidad Veracruzana · naperez@uv.mx · 2026</p>
+    <p class="decl"><b>Declaración de uso de IA generativa.</b> El diseño, el código y los textos de ejemplo se generaron con Claude (Anthropic), modelo claude-opus-5-5, en octubre de 2026. La autora definió los objetivos, el contenido pedagógico y los criterios de diseño, y revisó y validó el resultado final.</p>
+  </footer>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const KEY = 'mi-asistente-docente-v1';
+
+  const DEF_ENT = [
+    'Propósito de la sesión en una línea, vinculado al perfil de egreso',
+    'Actividad de inicio (10 min)',
+    'Actividad central, con una versión de apoyo y una de reto',
+    'Cierre con una pregunta de reflexión sobre la práctica docente',
+    'Rúbrica sencilla de 3 criterios y 3 niveles'
+  ];
+  const DEF_REG = [
+    'Usa ejemplos cercanos a mi contexto y al de las escuelas de práctica',
+    'Lenguaje claro, sin jerga innecesaria',
+    'Si te falta información importante, pregúntame antes de responder',
+    'No inventes referencias bibliográficas; si citas a un autor, indica que debo verificarlo',
+    'Nunca me pidas datos personales de mis estudiantes'
+  ];
+  const EXAMPLE = {
+    lic:'Educación Primaria', licOtra:'', sem:'3.er',
+    curso:'Planeación y evaluación de la enseñanza y el aprendizaje',
+    grupo:'30 estudiantes; participan bien en equipo, les cuesta argumentar por escrito',
+    recursos:'Proyector e internet limitado',
+    practica:'Escuelas rurales y multigrado de Veracruz'
+  };
+
+  let state = {
+    fields: {...EXAMPLE},
+    ent: DEF_ENT.map(t=>({t,on:true})),
+    reg: DEF_REG.map(t=>({t,on:true})),
+    xVisual:false, xDoble:true, example:true, tab:'claude'
+  };
+  try{ const s = JSON.parse(localStorage.getItem(KEY)||'null'); if(s && s.fields) state = {...state, ...s}; }catch(e){}
+  const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} };
+
+  const FIELD_IDS = ['lic','licOtra','sem','curso','grupo','recursos','practica'];
+
+  function fillForm(){
+    FIELD_IDS.forEach(id=>{ $(id).value = state.fields[id] ?? ''; });
+    if(![...$('lic').options].some(o=>o.value===state.fields.lic)) $('lic').value='__otra';
+    $('licOtraWrap').hidden = $('lic').value !== '__otra';
+    $('xVisual').checked = state.xVisual; $('xDoble').checked = state.xDoble;
+    $('exampleNote').hidden = !state.example;
+    renderList('entregables', state.ent); renderList('reglas', state.reg);
+    selectTab(state.tab);
+  }
+
+  function renderList(id, arr){
+    const box = $(id); box.innerHTML='';
+    arr.forEach((it,i)=>{
+      const row = document.createElement('label'); row.className='check';
+      const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=it.on; cb.id=id+'-'+i;
+      cb.addEventListener('change',()=>{ it.on=cb.checked; update(); });
+      const sp = document.createElement('span'); sp.textContent=it.t;
+      const x = document.createElement('button'); x.type='button'; x.className='x'; x.setAttribute('aria-label','Quitar'); x.textContent='×';
+      x.addEventListener('click',e=>{ e.preventDefault(); arr.splice(i,1); renderList(id,arr); update(); });
+      row.append(cb,sp,x); box.append(row);
+    });
+  }
+
+  function addTo(inputId, arr, listId){
+    const v = $(inputId).value.trim(); if(!v) return;
+    arr.push({t:v,on:true}); $(inputId).value=''; renderList(listId,arr); update();
+  }
+
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const RISK = [
+    [/\b(calificaci[oó]n|promedio|reprob)/i,'Mencionas calificaciones.'],
+    [/\b(diagn[oó]stico|tdah|autismo|discapacidad|expediente|psicol[oó]g)/i,'Parece un dato de salud o expediente.'],
+    [/\b(curp|matr[ií]cula|tel[eé]fono|domicilio|correo)\b/i,'Parece un dato de identificación.'],
+    [/\b(alumn[oa]|estudiante)\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,}/,'Parece que escribiste el nombre de un estudiante.']
+  ];
+
+  function build(){
+    const f = state.fields;
+    const lic = f.lic==='__otra' ? f.licOtra : f.lic;
+    const v = (val, ph) => val && val.trim() ? {t:val.trim(), ok:true} : {t:'['+ph+']', ok:false};
+    const L = []; // [text, kind] kind: h, t, ph-mixed
+    const parts = [];
+    const H = t => parts.push({h:t});
+    const T = t => parts.push({t});
+    const M = (pre, obj) => parts.push({pre, obj});
+    const items = [v(lic,'licenciatura'), v(f.sem,'semestre'), v(f.curso,'curso'), v(f.grupo,'describe a tu grupo'), v(f.recursos,'recursos'), v(f.practica,'dónde hacen sus prácticas')];
+
+    H('ROL');
+    T('Eres un asistente pedagógico que me ayuda a diseñar actividades de aprendizaje para mi curso en una Escuela Normal. Mis estudiantes se forman para ser docentes, así que cada actividad debe vincular la teoría con su práctica profesional.');
+    T('');
+    H('MI CONTEXTO');
+    M('- Licenciatura: ', items[0]);
+    M('- Semestre: ', items[1]);
+    M('- Curso: ', items[2]);
+    M('- Mi grupo: ', items[3]);
+    M('- Recursos: ', items[4]);
+    M('- Prácticas profesionales en: ', items[5]);
+    T('');
+    const ent = state.ent.filter(x=>x.on).map(x=>x.t);
+    if(state.xDoble) ent.push('Una actividad en la que mis estudiantes usen la IA de forma crítica para preparar su práctica, y declaren qué hizo la IA y qué decidieron ellos');
+    H('CUANDO TE DÉ UN TEMA, ENTRÉGAME');
+    if(ent.length) ent.forEach((t,i)=>T((i+1)+'. '+t)); else M('', {t:'[marca al menos un producto]', ok:false});
+    T('');
+    const reg = state.reg.filter(x=>x.on).map(x=>x.t);
+    H('REGLAS');
+    if(reg.length) reg.forEach(t=>T('- '+t)); else M('', {t:'[marca al menos una regla]', ok:false});
+    if(state.xVisual){
+      T('');
+      H('MATERIAL VISUAL');
+      T('Para cada actividad, sugiere 1 o 2 imágenes útiles (ilustración, esquema, tarjeta o póster) y escribe para cada una un prompt listo para un generador de imágenes que indique:');
+      T('- qué se ve (personajes, objetos, escenario)');
+      T('- estilo (ilustración de libro escolar, acuarela, esquema, etc.)');
+      T('- público al que va dirigida y formato (vertical, horizontal o cuadrado)');
+      T('- sin texto dentro de la imagen');
+    }
+    const done = items.filter(x=>x.ok).length;
+    return {parts, done, total: items.length};
+  }
+
+  function toPlain(parts){
+    return parts.map(p=> p.h ? p.h : p.t!==undefined ? p.t : p.pre + p.obj.t).join('\n');
+  }
+  function toHTML(parts){
+    return parts.map(p=>{
+      if(p.h) return '<span class="h">'+esc(p.h)+'</span>';
+      if(p.t!==undefined) return esc(p.t);
+      return esc(p.pre) + (p.obj.ok ? esc(p.obj.t) : '<span class="ph">'+esc(p.obj.t)+'</span>');
+    }).join('\n');
+  }
+
+  let current = '';
+  function update(){
+    const r = build();
+    current = toPlain(r.parts);
+    $('preview').innerHTML = toHTML(r.parts);
+    $('meterTxt').textContent = r.done+' de '+r.total+' campos';
+    $('meterBar').style.width = (100*r.done/r.total)+'%';
+    const txt = [state.fields.grupo, state.fields.curso, state.fields.recursos, state.fields.practica].join(' ');
+    const hit = RISK.find(([re])=>re.test(txt));
+    $('privacy').hidden = !hit; if(hit) $('privacyMsg').textContent = hit[1];
+    save();
+  }
+
+  FIELD_IDS.forEach(id=>{
+    $(id).addEventListener('input',()=>{
+      state.fields[id] = $(id).value;
+      if(id==='lic') $('licOtraWrap').hidden = $('lic').value!=='__otra';
+      update();
+    });
+  });
+  $('xVisual').addEventListener('change',e=>{state.xVisual=e.target.checked;update();});
+  $('xDoble').addEventListener('change',e=>{state.xDoble=e.target.checked;update();});
+  $('addEntBtn').addEventListener('click',()=>addTo('addEnt',state.ent,'entregables'));
+  $('addRegBtn').addEventListener('click',()=>addTo('addReg',state.reg,'reglas'));
+  $('addEnt').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addTo('addEnt',state.ent,'entregables');}});
+  $('addReg').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addTo('addReg',state.reg,'reglas');}});
+  $('form').addEventListener('submit',e=>e.preventDefault());
+  $('clearBtn').addEventListener('click',()=>{
+    state.fields = {lic:'Educación Primaria',licOtra:'',sem:'1.er',curso:'',grupo:'',recursos:'',practica:''};
+    state.example=false; fillForm(); update(); $('curso').focus();
+  });
+
+  function selectPre(){
+    const r = document.createRange(); r.selectNodeContents($('preview'));
+    const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+  }
+  function flash(msg){ $('toast').textContent=msg; clearTimeout(flash.t); flash.t=setTimeout(()=>$('toast').textContent='',3500); }
+  $('copyBtn').addEventListener('click',()=>{
+    const p = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(current) : Promise.reject();
+    p.then(()=>flash('Copiado'), ()=>{ selectPre(); flash('Texto seleccionado: usa Ctrl+C'); });
+  });
+  $('selectBtn').addEventListener('click',()=>{ selectPre(); flash('Texto seleccionado'); });
+
+  const WHERE = {
+    claude:['Crea un Proyecto nuevo con el nombre de tu curso.','Pega las instrucciones en las instrucciones del proyecto.','Opcional: sube el programa del curso como archivo del proyecto.','Abre un chat dentro del proyecto y escribe solo el tema.'],
+    chatgpt:['Crea un GPT personalizado o un Proyecto.','Pega las instrucciones en el campo de instrucciones.','Opcional: agrega el programa del curso como archivo.','Escribe solo el tema en un chat nuevo.'],
+    gemini:['Crea un Gem nuevo.','Pega las instrucciones en la descripción del Gem.','Opcional: agrega el programa del curso como archivo.','Conversa con el Gem escribiendo solo el tema.'],
+    doc:['Pega las instrucciones en un documento de texto y guárdalo.','Al iniciar cada conversación, copia y pega el documento completo.','Al final agrega: “Tema: …”.','Funciona igual en cualquier herramienta.']
+  };
+  function selectTab(k){
+    state.tab=k;
+    document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.k===k)));
+    $('whereSteps').innerHTML = WHERE[k].map(s=>'<li>'+esc(s)+'</li>').join('');
+  }
+  document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{selectTab(b.dataset.k);save();}));
+
+  fillForm(); update();
+})();
+</script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const KEY = 'mi-asistente-parts-v1';
+  const L = ['P','A','R','T','S'];
+  const EX = {
+    literatura:{
+      P:'Actúa como investigador en formación docente con experiencia en revisiones de literatura educativa.',
+      A:'Identifica y compara artículos académicos publicados entre 2019 y 2025 sobre la retroalimentación formativa durante la práctica profesional en la formación inicial docente.',
+      R:'El resultado servirá para fundamentar el marco teórico de un artículo que escribiré con colegas de una Escuela Normal; usa un nivel académico.',
+      T:'Prioriza estudios empíricos de América Latina publicados en revistas arbitradas, en español o inglés. Excluye tesis, blogs y documentos sin autoría.',
+      S:'Presenta máximo 8 registros en una tabla con: título, autores, año, revista, método, hallazgo principal y DOI o enlace. Distingue la información verificada de tus inferencias e indica claramente si no pudiste confirmar que una fuente existe.',
+      tip:'úsalo en una IA con búsqueda web activada. Abre cada DOI o enlace antes de citarlo: la IA puede inventar referencias con formato impecable.'
+    },
+    rubrica:{
+      P:'Actúa como formadora de docentes con experiencia en evaluación del aprendizaje.',
+      A:'Diseña una rúbrica analítica para valorar la planeación didáctica que entregarán mis estudiantes antes de su jornada de práctica.',
+      R:'La rúbrica la usarán estudiantes de 5.º semestre de la Licenciatura en Educación Primaria para autoevaluarse y yo para evaluarlos.',
+      T:'La planeación es de Matemáticas para 4.º grado en una escuela multigrado rural de Veracruz; considera la atención a la diversidad y la vinculación con la comunidad.',
+      S:'Presenta la rúbrica en una tabla con 4 criterios y 4 niveles de desempeño, con descriptores observables, y agrega al final 3 preguntas de autoevaluación para el estudiante.',
+      tip:'funciona en cualquier IA. Después pide: “ajusta los descriptores para que sean más observables” o “conviértela en lista de cotejo”.'
+    },
+    actividad:{
+      P:'Actúa como formadora de docentes especialista en didáctica de las matemáticas.',
+      A:'Diseña una secuencia de 2 sesiones de 90 minutos en la que mis estudiantes analicen los errores comunes de niños al resolver problemas con fracciones.',
+      R:'Está dirigida a estudiantes de 3.er semestre de la Licenciatura en Educación Primaria que harán su próxima jornada de práctica en 4.º grado.',
+      T:'El tema es fracciones equivalentes. Incluye ejemplos inventados de producciones infantiles para analizar y relaciónalos con escuelas rurales de Veracruz.',
+      S:'Para cada sesión indica propósito, inicio, desarrollo y cierre con tiempos, materiales y producto esperado. Cierra con una lista de cotejo de 5 indicadores.',
+      tip:'funciona en cualquier IA. Si adjuntas el programa de tu curso, pide que alinee la secuencia con sus propósitos.'
+    },
+    imagen:{
+      P:'Actúa como ilustrador de materiales educativos.',
+      A:'Crea una ilustración para iniciar una clase sobre la atención a la diversidad en el aula multigrado.',
+      R:'Se proyectará a estudiantes normalistas, pero también debe ser clara para niños de primaria.',
+      T:'Escena: aula de una escuela rural multigrado en Veracruz; una maestra joven trabaja con niñas y niños de distintas edades en tres mesas, con materiales hechos a mano y luz natural. Muestra diversidad en los rasgos y la ropa de los niños.',
+      S:'Estilo de ilustración de libro escolar, colores cálidos, formato horizontal 16:9, sin texto ni letras dentro de la imagen.',
+      tip:'pégalo en una herramienta que genere imágenes (por ejemplo Gemini, ChatGPT, Copilot o Canva). Revisa la imagen antes de usarla y agrega los textos después en Canva o PowerPoint.'
+    }
+  };
+  let st = {P:'',A:'',R:'',T:'',S:'',ex:'rubrica',tab:'panel-parts'};
+  const load = k => { st = {...st, ...EX[k]}; delete st.tip; st.ex = k; };
+  let saved = null; try{ saved = JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){}
+  if(saved && saved.ex!==undefined) st = {...st, ...saved}; else load('rubrica');
+  const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(st)); }catch(e){} };
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  function fill(){
+    L.forEach(k=>{ $('pp-'+k).value = st[k]||''; });
+    document.querySelectorAll('#exChips .chip').forEach(c=>c.setAttribute('aria-pressed', String(c.dataset.ex===st.ex)));
+    const ex = EX[st.ex];
+    $('exTip').hidden = !ex; if(ex) $('exTipTxt').textContent = ex.tip;
+  }
+  let plain='';
+  function render(){
+    const filled = L.filter(k=>(st[k]||'').trim());
+    plain = filled.map(k=>st[k].trim()).join('\n\n');
+    $('pPreview').innerHTML = filled.length
+      ? filled.map(k=>'<span class="c-'+k+'">'+esc(st[k].trim())+'</span>').join('\n\n')
+      : '<span class="ph">[Completa las piezas de PARTS o carga un ejemplo]</span>';
+    $('pMeterTxt').textContent = filled.length+' de 5 piezas';
+    $('pMeterBar').style.width = (20*filled.length)+'%';
+    save();
+  }
+  L.forEach(k=>$('pp-'+k).addEventListener('input',e=>{ st[k]=e.target.value; render(); }));
+  document.querySelectorAll('#exChips .chip').forEach(c=>c.addEventListener('click',()=>{
+    const k = c.dataset.ex;
+    if(k==='blanco'){ L.forEach(x=>st[x]=''); st.ex='blanco'; } else load(k);
+    fill(); render(); $('pp-P').focus();
+  }));
+  $('partsForm').addEventListener('submit',e=>e.preventDefault());
+
+  function selectPre(){ const r=document.createRange(); r.selectNodeContents($('pPreview')); const s=window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+  function flash(m){ $('pToast').textContent=m; clearTimeout(flash.t); flash.t=setTimeout(()=>$('pToast').textContent='',3500); }
+  $('pCopyBtn').addEventListener('click',()=>{
+    if(!plain){ flash('Primero completa alguna pieza'); return; }
+    const p = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(plain) : Promise.reject();
+    p.then(()=>flash('Copiado'), ()=>{ selectPre(); flash('Texto seleccionado: usa Ctrl+C'); });
+  });
+  $('pSelectBtn').addEventListener('click',()=>{ selectPre(); flash('Texto seleccionado'); });
+
+  const tabs = document.querySelectorAll('.maintab');
+  function showTab(id){
+    st.tab = id;
+    tabs.forEach(t=>{ const on = t.dataset.panel===id; t.setAttribute('aria-selected', String(on)); $(t.dataset.panel).hidden = !on; });
+    save();
+  }
+  tabs.forEach(t=>t.addEventListener('click',()=>showTab(t.dataset.panel)));
+  if(location.hash==='#asistente') st.tab='panel-asistente';
+  if(location.hash==='#parts') st.tab='panel-parts';
+  if(location.hash==='#visual') st.tab='panel-visual';
+
+  fill(); render(); showTab(st.tab);
+})();
+</script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const KEY = 'mi-asistente-visual-v1';
+  const TYPES = {
+    infografia:{nombre:'infografía', where:'panel Studio › Infografía › opción de personalizar (ícono de lápiz).',
+      opts:[['orient','Orientación',['horizontal','vertical','cuadrada']],['detalle','Nivel de detalle',['sencillo','detallado']]]},
+    presentacion:{nombre:'presentación', where:'panel Studio › Presentación › opción de personalizar (ícono de lápiz).',
+      opts:[['formato','Formato',['detallada, para leer sola','de apoyo para exponer']],['num','Diapositivas aprox.',['6','8','10','12']]]},
+    video:{nombre:'resumen en video', where:'panel Studio › Resumen en video › opción de personalizar (ícono de lápiz).',
+      opts:[['dur','Duración',['breve (1 a 2 min)','explicativo (más largo)']]]},
+    mapa:{nombre:'mapa mental', where:'el mapa mental no tiene cuadro de personalización. Usa este texto como pregunta en el chat del cuaderno para preparar el terreno y luego genera el mapa.', opts:[]}
+  };
+  const DEF = {type:'infografia', tema:'Evaluación formativa durante la jornada de práctica', aud:'estudiantes normalistas', grado:'3.er semestre',
+    prop:'introducir el tema y despertar preguntas', ideas:'Diferencia entre evaluar y calificar\nTres momentos para dar retroalimentación\nUn ejemplo de registro de evidencias',
+    estilo:'ilustración de libro escolar, amable y clara', paleta:'cálidos (naranjas, amarillos y verdes)', local:'escuelas rurales y multigrado de Veracruz',
+    fuentes:true, acces:true, divers:true, orient:'vertical', detalle:'sencillo', formato:'de apoyo para exponer', num:'8', dur:'breve (1 a 2 min)'};
+  let st = {...DEF};
+  try{ const s = JSON.parse(localStorage.getItem(KEY)||'null'); if(s && s.type) st = {...st, ...s}; }catch(e){}
+  const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(st)); }catch(e){} };
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const FIELDS = {tema:'v-tema', aud:'v-aud', grado:'v-grado', prop:'v-prop', ideas:'v-ideas', estilo:'v-estilo', paleta:'v-paleta', local:'v-local'};
+  const CHECKS = {fuentes:'v-fuentes', acces:'v-acces', divers:'v-divers'};
+
+  function renderOpts(){
+    const box = $('vTypeOpts'); box.innerHTML='';
+    TYPES[st.type].opts.forEach(([k,lab,vals])=>{
+      const l = document.createElement('label'); l.className='f'; l.textContent = lab;
+      const s = document.createElement('select'); s.id='v-opt-'+k;
+      vals.forEach(v=>{ const o=document.createElement('option'); o.textContent=v; s.append(o); });
+      s.value = st[k]; s.addEventListener('change',()=>{ st[k]=s.value; render(); });
+      l.append(s); box.append(l);
+    });
+    box.hidden = !TYPES[st.type].opts.length;
+  }
+  function fill(){
+    Object.entries(FIELDS).forEach(([k,id])=>{ $(id).value = st[k]; });
+    Object.entries(CHECKS).forEach(([k,id])=>{ $(id).checked = st[k]; });
+    document.querySelectorAll('#vTypes .chip').forEach(c=>c.setAttribute('aria-pressed', String(c.dataset.t===st.type)));
+    renderOpts();
+  }
+
+  function build(){
+    const t = TYPES[st.type];
+    const ph = (v,p) => v && v.trim() ? esc(v.trim()) : '<span class="ph">['+p+']</span>';
+    const plainV = (v,p) => v && v.trim() ? v.trim() : '['+p+']';
+    const aud = st.aud + (st.grado.trim() ? ' de '+st.grado.trim() : '');
+    const ideas = st.ideas.split('\n').map(s=>s.trim()).filter(Boolean);
+    const lines = []; // [plain, html]
+    const add = (p,h) => lines.push([p, h===undefined ? esc(p) : h]);
+    if(st.type==='mapa'){
+      add('Con base en las fuentes de este cuaderno, organiza los conceptos principales sobre '+plainV(st.tema,'tema')+' para '+aud+'.', 'Con base en las fuentes de este cuaderno, organiza los conceptos principales sobre '+ph(st.tema,'tema')+' para '+esc(aud)+'.');
+      add('El propósito es '+st.prop+'.');
+      if(ideas.length){ add('Asegúrate de incluir estas ideas:'); ideas.forEach(i=>add('- '+i)); }
+      add('Agrúpalos en 4 a 6 ramas con nombres breves y explica en una línea cómo se relacionan.');
+    } else {
+      const art = st.type==='video' ? 'un ' : 'una ';
+      add('Crea '+art+t.nombre+' sobre '+plainV(st.tema,'tema')+' a partir de las fuentes de este cuaderno.', 'Crea '+art+esc(t.nombre)+' sobre '+ph(st.tema,'tema')+' a partir de las fuentes de este cuaderno.');
+      add('El material está dirigido a '+aud+'. Su propósito es '+st.prop+'.');
+      if(ideas.length){ add('Debe incluir estas ideas:'); ideas.forEach(i=>add('- '+i)); }
+      if(st.type==='infografia') add('Organiza la información en pocos bloques con títulos claros y prioriza las ideas anteriores sobre los detalles.');
+      if(st.type==='presentacion') add('Usa alrededor de '+st.num+' diapositivas, una idea por diapositiva, y termina con una diapositiva de preguntas para discutir en grupo.');
+      if(st.type==='video') add('Explica como lo haría una docente cercana, incluye un ejemplo concreto de aula y termina con una pregunta de reflexión.');
+      add('Estilo visual: '+st.estilo+'. Colores: '+st.paleta+'.');
+    }
+    if(st.local.trim()) add('Cuando uses ejemplos o escenas, sitúalos en '+st.local.trim()+'.');
+    add('Escribe en español de México, con lenguaje claro y frases breves.');
+    if(st.acces && st.type!=='mapa') add('Que sea fácil de leer al proyectarse: poco texto por sección, letra grande y buen contraste.');
+    if(st.divers && st.type!=='mapa') add('Representa a personas diversas y evita estereotipos.');
+    if(st.fuentes) add('Usa solo información presente en las fuentes; no inventes datos, cifras ni autores.');
+    const cfg = [];
+    if(st.type==='infografia'){ cfg.push('Orientación: '+st.orient+'.'); cfg.push('Nivel de detalle: '+st.detalle+'.'); }
+    if(st.type==='presentacion') cfg.push('Formato: '+st.formato+'.');
+    if(st.type==='video') cfg.push('Duración: '+st.dur+'.');
+    return {lines, cfg, where:t.where, nombre:t.nombre};
+  }
+
+  let plain='';
+  function render(){
+    const r = build();
+    plain = r.lines.map(l=>l[0]).join('\n');
+    $('vPreview').innerHTML = r.lines.map(l=>l[1]).join('\n');
+    $('vWhere').textContent = r.where.charAt(0).toUpperCase()+r.where.slice(1);
+    $('vConfig').innerHTML = r.cfg.map(c=>'<li>En las opciones elige → '+esc(c)+'</li>').join('');
+    $('vConfig').hidden = !r.cfg.length;
+    $('vOutTitle').textContent = 'Tu prompt: '+r.nombre;
+    save();
+  }
+
+  Object.entries(FIELDS).forEach(([k,id])=>$(id).addEventListener('input',()=>{ st[k]=$(id).value; render(); }));
+  Object.entries(CHECKS).forEach(([k,id])=>$(id).addEventListener('change',()=>{ st[k]=$(id).checked; render(); }));
+  document.querySelectorAll('#vTypes .chip').forEach(c=>c.addEventListener('click',()=>{ st.type=c.dataset.t; fill(); render(); }));
+  $('vForm').addEventListener('submit',e=>e.preventDefault());
+  function selectPre(){ const r=document.createRange(); r.selectNodeContents($('vPreview')); const s=window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+  function flash(m){ $('vToast').textContent=m; clearTimeout(flash.t); flash.t=setTimeout(()=>$('vToast').textContent='',3500); }
+  $('vCopyBtn').addEventListener('click',()=>{
+    const p = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(plain) : Promise.reject();
+    p.then(()=>flash('Copiado'), ()=>{ selectPre(); flash('Texto seleccionado: usa Ctrl+C'); });
+  });
+  $('vSelectBtn').addEventListener('click',()=>{ selectPre(); flash('Texto seleccionado'); });
+  fill(); render();
+})();
+</script>
+
+</body>
+</html>
